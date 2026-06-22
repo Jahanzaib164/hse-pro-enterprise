@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, AlertTriangle, Eye, ClipboardList, CheckSquare,
   FileSearch, FileText, GraduationCap, Siren, Leaf, HeartPulse,
-  Folder, Users, ShieldCheck,
+  Folder, Users, ShieldCheck, BarChart3, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +14,8 @@ const nav = [
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/observations', label: 'Observations', icon: Eye },
   { href: '/risk-assessments', label: 'Risk Assessments', icon: ClipboardList },
-  { href: '/corrective-actions', label: 'Corrective Actions', icon: CheckSquare },
-  { href: '/audits', label: 'Audits', icon: FileSearch },
+  { href: '/actions', label: 'Corrective Actions', icon: CheckSquare },
+  { href: '/audits', label: 'Audits & Inspections', icon: FileSearch },
   { href: '/permits', label: 'Permits To Work', icon: FileText },
   { href: '/training', label: 'Training', icon: GraduationCap },
   { href: '/emergency', label: 'Emergency', icon: Siren },
@@ -23,6 +23,8 @@ const nav = [
   { href: '/health', label: 'Occupational Health', icon: HeartPulse },
   { href: '/documents', label: 'Documents', icon: Folder },
   { href: '/contractors', label: 'Contractors', icon: Users },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -33,7 +35,7 @@ export function Sidebar() {
         <ShieldCheck className="h-6 w-6 text-primary" />
         <span className="font-bold">HSE Pro</span>
       </div>
-      <nav className="space-y-1 p-3">
+      <nav className="space-y-1 overflow-y-auto p-3">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
