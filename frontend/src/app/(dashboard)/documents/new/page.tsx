@@ -1,12 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Field } from '@/components/shared/Field';
-import { FileUpload } from '@/components/shared/FileUpload';
+import { FileUpload, type UploadedFile } from '@/components/shared/FileUpload';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from '@/components/ui';
 import { useCreate } from '@/hooks/useResource';
 import type { DocumentRecord } from '@/types';
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof schema>;
 export default function NewDocumentPage() {
   const router = useRouter();
   const create = useCreate<DocumentRecord>('/documents');
+  const [uploaded, setUploaded] = useState<UploadedFile[]>([]);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { document_type: 'PROCEDURE', iso_standard: 'ISO_45001', version: '1.0' },
@@ -33,7 +35,7 @@ export default function NewDocumentPage() {
 
   const onSubmit = (v: FormValues) => {
     create.mutate(
-      { ...v, status: 'DRAFT' },
+      { ...v, status: 'DRAFT', file_path: uploaded[0]?.url, file_size: uploaded[0]?.fileSize },
       { onSuccess: (c) => router.push(`/documents/${c.id}`) }
     );
   };
@@ -71,7 +73,7 @@ export default function NewDocumentPage() {
         <Card>
           <CardHeader><CardTitle>File</CardTitle></CardHeader>
           <CardContent>
-            <FileUpload multiple={false} accept=".pdf,.doc,.docx,.xls,.xlsx" />
+            <FileUpload multiple={false} autoUpload accept=".pdf,.doc,.docx,.xls,.xlsx" onUploaded={setUploaded} />
           </CardContent>
         </Card>
 

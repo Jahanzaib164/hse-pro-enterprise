@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { MapPin } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Field } from '@/components/shared/Field';
-import { FileUpload } from '@/components/shared/FileUpload';
+import { FileUpload, type UploadedFile } from '@/components/shared/FileUpload';
 import {
   Button, Card, CardContent, CardHeader, CardTitle, Input, Select, Textarea,
 } from '@/components/ui';
@@ -35,7 +35,7 @@ type FormValues = z.infer<typeof schema>;
 export default function NewIncidentPage() {
   const router = useRouter();
   const create = useCreate<Incident>('/incidents');
-  const [, setFiles] = useState<File[]>([]);
+  const [, setUploaded] = useState<UploadedFile[]>([]);
 
   const {
     register,
@@ -152,7 +152,7 @@ export default function NewIncidentPage() {
             <CardTitle>Attachments</CardTitle>
           </CardHeader>
           <CardContent>
-            <FileUpload onFilesChange={setFiles} />
+            <FileUpload autoUpload onUploaded={setUploaded} />
           </CardContent>
         </Card>
 

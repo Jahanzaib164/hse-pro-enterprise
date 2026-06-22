@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -43,9 +48,34 @@ export async function saveFile(
     );
     return { storage: 's3', path: key };
   }
-  const filePath = path.join(UPLOAD_DIR, key.replace(/[^a-zA-Z0-9._-]/g, '_'));
+  const safeKey = key
+    .split('/')
+    .map((seg) => seg.replace(/[^a-zA-Z0-9._-]/g, '_'))
+    .join('/');
+  const filePath = path.join(UPLOAD_DIR, safeKey);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, buffer);
   return { storage: 'local', path: filePath };
+}
+
+export async function deleteFile(key: string): Promise<void> {
+  if (useS3 && s3) {
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.S3_BUCKET || 'hse-pro-files',
+        Key: key,
+      })
+    );
+    return;
+  }
+  const safeKey = key
+    .split('/')
+    .map((seg) => seg.replace(/[^a-zA-Z0-9._-]/g, '_'))
+    .join('/');
+  const filePath = path.join(UPLOAD_DIR, safeKey);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
 }
 
 export async function getFile(key: string): Promise<Buffer | null> {

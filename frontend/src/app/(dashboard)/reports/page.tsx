@@ -13,50 +13,77 @@ import api from '@/lib/api';
 const ENTITIES = [
   { value: 'incidents', label: 'Incidents' },
   { value: 'observations', label: 'Observations' },
-  { value: 'corrective_actions', label: 'Corrective Actions' },
+  { value: 'actions', label: 'Corrective Actions' },
   { value: 'permits', label: 'Permits' },
   { value: 'audits', label: 'Audits' },
-  { value: 'training_records', label: 'Training Records' },
+  { value: 'training', label: 'Training Records' },
+  { value: 'environmental', label: 'Environmental' },
+  { value: 'all', label: 'All Modules' },
 ];
 const PERIODS = ['daily', 'weekly', 'monthly', 'annual'];
+const FORMATS = [
+  { value: 'pdf', label: 'PDF' },
+  { value: 'excel', label: 'Excel' },
+  { value: 'csv', label: 'CSV' },
+];
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#6b7280'];
+
+const EXT: Record<string, string> = { pdf: 'pdf', excel: 'xlsx', csv: 'csv' };
 
 export default function ReportsPage() {
   const [entity, setEntity] = useState('incidents');
   const [period, setPeriod] = useState('monthly');
-  const [format, setFormat] = useState('csv');
+  const [format, setFormat] = useState('pdf');
   const [breakdown, setBreakdown] = useState<{ status: string; c: number }[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [toast, setToast] = useState<{ kind: 'success' | 'error'; msg: string } | null>(null);
+
+  const showToast = (kind: 'success' | 'error', msg: string) => {
+    setToast({ kind, msg });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const runReport = async () => {
     setLoading(true);
-    setError('');
     try {
-      const { data } = await api.get(`/reports/summary/${entity}`);
+      const target = entity === 'all' ? 'incidents' : entity;
+      const { data } = await api.get(`/reports/summary/${target}`);
       setBreakdown(data.breakdown);
     } catch {
-      setError('Failed to generate report.');
+      showToast('error', 'Failed to load report preview.');
     } finally {
       setLoading(false);
     }
   };
 
-  const exportData = async () => {
+  const generateReport = async () => {
+    setGenerating(true);
     try {
-      const res = await api.get(`/reports/export/${entity}`, { responseType: 'blob' });
+      const res = await api.get('/reports/generate', {
+        params: { type: period, module: entity, format },
+        responseType: 'blob',
+      });
       const url = URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${entity}-${period}.${format === 'csv' ? 'csv' : 'csv'}`;
+      a.download = `hse-report-${entity}-${period}.${EXT[format] || 'pdf'}`;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       URL.revokeObjectURL(url);
+      showToast('success', 'Report generated and downloaded.');
     } catch {
-      setError('Export failed.');
+      showToast('error', 'Failed to generate report.');
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const chartData = (breakdown ?? []).map((b) => ({ name: (b.status || 'UNKNOWN').replace(/_/g, ' '), value: b.c }));
+  const chartData = (breakdown ?? []).map((b) => ({
+    name: (b.status || 'UNKNOWN').replace(/_/g, ' '),
+    value: b.c,
+  }));
 
   return (
     <div className="space-y-6">
@@ -77,29 +104,30 @@ export default function ReportsPage() {
           </Field>
           <Field label="Format">
             <Select value={format} onChange={(e) => setFormat(e.target.value)}>
-              <option value="csv">CSV / Excel</option>
-              <option value="pdf">PDF</option>
+              {FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
             </Select>
           </Field>
           <div className="flex items-end gap-2">
-            <Button onClick={runReport} disabled={loading}>
-              <FileBarChart className="h-4 w-4" /> {loading ? 'Running…' : 'Generate'}
+            <Button variant="outline" onClick={runReport} disabled={loading}>
+              <FileBarChart className="h-4 w-4" /> {loading ? 'Loading…' : 'Preview'}
+            </Button>
+            <Button onClick={generateReport} disabled={generating}>
+              <Download className="h-4 w-4" /> {generating ? 'Generating…' : 'Generate Report'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {toast && (
+        <p className={`text-sm ${toast.kind === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+          {toast.msg}
+        </p>
+      )}
 
       {breakdown && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>{ENTITIES.find((e) => e.value === entity)?.label} by Status</CardTitle>
-              <Button variant="outline" size="sm" onClick={exportData}>
-                <Download className="h-4 w-4" /> Export
-              </Button>
-            </div>
+            <CardTitle>{ENTITIES.find((e) => e.value === entity)?.label} by Status</CardTitle>
           </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (

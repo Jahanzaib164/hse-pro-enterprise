@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { Server as SocketServer } from 'socket.io';
 
 import { pool } from './config/database';
@@ -28,6 +29,7 @@ import documentRoutes from './routes/documents';
 import contractorRoutes from './routes/contractors';
 import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
+import uploadRoutes from './routes/upload';
 
 dotenv.config();
 
@@ -52,6 +54,8 @@ app.use('/api', limiter);
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
 app.use('/api/auth/login', authLimiter);
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -72,6 +76,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/contractors', contractorRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });

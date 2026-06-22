@@ -325,6 +325,44 @@ export interface IncidentTrendPoint {
   incidents: number;
 }
 
+export interface DashboardSummary {
+  incidents: {
+    total: number;
+    open: number;
+    closed: number;
+    lti: number;
+    near_misses: number;
+    this_month: number;
+    trend: { month: string; total: number }[];
+  };
+  observations: {
+    total: number;
+    open: number;
+    closed: number;
+    by_type: Record<string, number>;
+  };
+  actions: { total: number; open: number; overdue: number; completed: number };
+  audits: { total: number; completed: number; avg_compliance: number };
+  permits: { active: number; expiring_soon: number };
+  training: {
+    compliant: number;
+    expiring_soon: number;
+    expired: number;
+    compliance_rate: number;
+  };
+  environmental: {
+    waste_this_month: number;
+    water_this_month: number;
+    fuel_this_month: number;
+  };
+  emergency_drills: { planned_this_year: number; completed_this_year: number };
+}
+
+export interface RiskMatrixPoint {
+  level: string;
+  count: number;
+}
+
 export interface Notification {
   id: string;
   type: string;

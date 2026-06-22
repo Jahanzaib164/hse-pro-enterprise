@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { MapPin } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Field } from '@/components/shared/Field';
-import { FileUpload } from '@/components/shared/FileUpload';
+import { FileUpload, type UploadedFile } from '@/components/shared/FileUpload';
 import { Button, Card, CardContent, Input, Select, Textarea } from '@/components/ui';
 import { useCreate } from '@/hooks/useResource';
 import type { Observation } from '@/types';
@@ -28,7 +28,7 @@ type FormValues = z.infer<typeof schema>;
 export default function NewObservationPage() {
   const router = useRouter();
   const create = useCreate<Observation>('/observations');
-  const [, setFiles] = useState<File[]>([]);
+  const [, setUploaded] = useState<UploadedFile[]>([]);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { observation_type: 'UNSAFE_CONDITION', risk_rating: 'MEDIUM' },
@@ -92,7 +92,7 @@ export default function NewObservationPage() {
             </Field>
             <div className="sm:col-span-2">
               <Field label="Photos">
-                <FileUpload accept="image/*" onFilesChange={setFiles} />
+                <FileUpload accept="image/*" autoUpload onUploaded={setUploaded} />
               </Field>
             </div>
           </CardContent>
