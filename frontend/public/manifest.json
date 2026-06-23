@@ -1,0 +1,20 @@
+{
+  "name": "HSE Pro Enterprise",
+  "short_name": "HSE Pro",
+  "description": "Enterprise Health, Safety & Environment Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    { "name": "Report Incident", "url": "/incidents/new", "description": "Report a new incident" },
+    { "name": "New Observation", "url": "/observations/new", "description": "Report a hazard observation" },
+    { "name": "Request Permit", "url": "/permits/new", "description": "Request a permit to work" }
+  ]
+}

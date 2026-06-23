@@ -312,4 +312,52 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// FORGOT PASSWORD
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: 'Email required' }); return; }
+    const { rows } = await query('SELECT id, first_name, email FROM users WHERE email=$1 AND is_active=true', [email]);
+    // Always respond OK to prevent email enumeration
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+    if (!rows[0]) return;
+    const user = rows[0];
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
+      [user.id, tokenHash]
+    );
+    const { sendPasswordResetEmail } = await import('../services/emailService');
+    await sendPasswordResetEmail({ email: user.email, first_name: user.first_name }, rawToken);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// RESET PASSWORD
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) { res.status(400).json({ error: 'Token and password required' }); return; }
+    if (password.length < 8) { res.status(400).json({ error: 'Password must be at least 8 characters' }); return; }
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const { rows } = await query(
+      `SELECT prt.id, prt.user_id FROM password_reset_tokens prt
+       WHERE prt.token_hash=$1 AND prt.expires_at > NOW() AND prt.used_at IS NULL`,
+      [tokenHash]
+    );
+    if (!rows[0]) { res.status(400).json({ error: 'Invalid or expired reset token' }); return; }
+    const hash = await bcrypt.hash(password, 12);
+    await query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, rows[0].user_id]);
+    await query('UPDATE password_reset_tokens SET used_at=NOW() WHERE id=$1', [rows[0].id]);
+    // Revoke all sessions
+    await query('UPDATE user_sessions SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [rows[0].user_id]);
+    res.json({ message: 'Password reset successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

@@ -11,6 +11,8 @@ import { Server as SocketServer } from 'socket.io';
 import { pool } from './config/database';
 import { connectRedis } from './config/redis';
 import { setSocketServer } from './services/notificationService';
+import { setSocketIO } from './services/socketService';
+import { startScheduler } from './services/schedulerService';
 import { verifyAccessToken } from './middleware/auth';
 
 import authRoutes from './routes/auth';
@@ -30,6 +32,7 @@ import contractorRoutes from './routes/contractors';
 import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
 import uploadRoutes from './routes/upload';
+import qrRoutes from './routes/qr';
 
 dotenv.config();
 
@@ -77,6 +80,7 @@ app.use('/api/contractors', contractorRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/qr', qrRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -84,7 +88,6 @@ app.use((_req, res) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });
@@ -94,6 +97,7 @@ const io = new SocketServer(server, {
   cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000' },
 });
 setSocketServer(io);
+setSocketIO(io);
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -109,21 +113,23 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   const user = (socket.data as any).user;
-  if (user) socket.join(`user:${user.id}`);
+  if (user) {
+    socket.join(`user:${user.id}`);
+    socket.join(`org:${user.org_id}`);
+    if (user.role) socket.join(`role:${user.org_id}:${user.role}`);
+  }
 });
 
 async function start(): Promise<void> {
   await connectRedis();
   try {
     await pool.query('SELECT 1');
-    // eslint-disable-next-line no-console
     console.log('Database connected');
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Database connection failed:', err);
   }
+  startScheduler();
   server.listen(PORT, () => {
-    // eslint-disable-next-line no-console
     console.log(`HSE Pro backend listening on port ${PORT}`);
   });
 }
